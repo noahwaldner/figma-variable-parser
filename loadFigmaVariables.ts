@@ -1,8 +1,6 @@
-console.log("Hello World!");
-
-const loadFimaVariables = async () => {
+const loadFimaVariables = async (fileKey) => {
   const figmaResponse = await fetch(
-    "https://api.figma.com/v1/files/YusQBIqf7U9QnI8xmTLlqf/variables/local",
+    `https://api.figma.com/v1/files/${fileKey}/variables/local`,
     {
       headers: {
         "X-Figma-Token": process.env.FIGMA_ACCESS_TOKEN,
@@ -21,18 +19,18 @@ const computeCollections = ({ collections, variables }) => {
   // Generate collections object shape
   const computedCollections = collectionIds.reduce(
     (accumulator, collectionIdentifier) => {
-      const collection = collections[collectionIdentifier];      
-        accumulator[collectionIdentifier] = {
-            id: collection.id,
-            name: collection.name,
-            modes: collection.modes.reduce((acc, current) => {
-              acc[current.modeId] = {
-                name: current.name,
-                variables: [],
-              };
-              return acc;
-            }, {}),
+      const collection = collections[collectionIdentifier];
+      accumulator[collectionIdentifier] = {
+        id: collection.id,
+        name: collection.name,
+        modes: collection.modes.reduce((acc, current) => {
+          acc[current.modeId] = {
+            name: current.name,
+            variables: [],
           };
+          return acc;
+        }, {}),
+      };
       return accumulator;
     },
     {}
@@ -59,26 +57,26 @@ const computeCollections = ({ collections, variables }) => {
   return computedCollections;
 };
 
-// format the collections to be human readable and iterable 
+// format the collections to be human readable and iterable
 const formatCollections = (collections, selectedCollections) => {
-    const collectionKeys = Object.keys(collections)
-    const formattedCollections = [];
-    collectionKeys.forEach(collectionKey => {
-        const collection = collections[collectionKey];
-        const collectionModeIds = Object.keys(collection.modes)
-        if (selectedCollections.includes(collection.name)) {
-            formattedCollections.push({
-                id: collection.id,
-                name: collection.name,
-                modes: collectionModeIds.map(modeId => collection.modes[modeId])
-        })
-        }
-    })
-    return formattedCollections
-}
+  const collectionKeys = Object.keys(collections);
+  const formattedCollections = [];
+  collectionKeys.forEach((collectionKey) => {
+    const collection = collections[collectionKey];
+    const collectionModeIds = Object.keys(collection.modes);
+    if (selectedCollections.includes(collection.name)) {
+      formattedCollections.push({
+        id: collection.id,
+        name: collection.name,
+        modes: collectionModeIds.map((modeId) => collection.modes[modeId]),
+      });
+    }
+  });
+  return formattedCollections;
+};
 
-loadFimaVariables().then((figmaData) => {
+loadFimaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {
   const computedCollections = computeCollections(figmaData);
-  const data = formatCollections(computedCollections, ["Primitive"])
+  const data = formatCollections(computedCollections, ["Primitive"]);
   console.dir(data, { depth: null });
 });
