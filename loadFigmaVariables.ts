@@ -1,3 +1,5 @@
+import Bun from "bun";
+
 const loadFimaVariables = async (fileKey) => {
   const figmaResponse = await fetch(
     `https://api.figma.com/v1/files/${fileKey}/variables/local`,
@@ -14,69 +16,110 @@ const loadFimaVariables = async (fileKey) => {
   };
 };
 
-const computeCollections = ({ collections, variables }) => {
-  const collectionIds = Object.keys(collections);
-  // Generate collections object shape
-  const computedCollections = collectionIds.reduce(
-    (accumulator, collectionIdentifier) => {
-      const collection = collections[collectionIdentifier];
-      accumulator[collectionIdentifier] = {
-        id: collection.id,
-        name: collection.name,
-        modes: collection.modes.reduce((acc, current) => {
-          acc[current.modeId] = {
-            name: current.name,
-            variables: [],
-          };
-          return acc;
-        }, {}),
-      };
-      return accumulator;
-    },
-    {}
-  );
 
-  // Iterate over variables and put them into the collections object
-  Object.keys(variables).forEach((variableId) => {
+
+const getComputedVariables = ({ collections, variables }) => {
+
+  const getVariableValueRecursive = (variableId, modeId, iteration = 0, parentDebug = null) => {
+    const variable = variables[variableId];
+    if (!variable) {
+      return null;
+    }
+    if (variable.variableCollectionId == "VariableCollectionId:80:1510") {
+      return variable.valuesByMode["80:0"];
+    }
+    const variableValue = variable.valuesByMode[modeId];
+    if (variableValue?.type === "VARIABLE_ALIAS") {
+      return getVariableValueRecursive(variableValue.id, modeId, iteration + 1, variables[variableId]);
+    }
+    return variableValue;
+  };
+
+  const modes = Object.keys(collections).reduce((acc, collectionId) => {
+    const collection = collections[collectionId];
+    if (collection.hiddenFromPublishing) {
+      return acc;
+    }
+    collection.modes.forEach((mode) => {
+      acc[mode.modeId] = mode.name;
+    });
+    return acc;
+  }, {});
+
+  const assembledVariables = Object.keys(variables).reduce((acc, variableId) => {
     const variable = variables[variableId];
     Object.keys(variable.valuesByMode).forEach((modeId) => {
-      const variableValue = variable.valuesByMode[modeId];
-      computedCollections[variable.variableCollectionId].modes[
-        modeId
-      ].variables.push({
-        name: variable.name,
-        type: variable.resolvedType,
-        value:
-          variableValue.type === "VARIABLE_ALIAS"
-            ? variables[variableValue.id]?.valuesByMode[modeId]
-            : variableValue,
+      if (variable.hiddenFromPublishing) {
+        return acc;
+      }
+      acc.push({
+        name: variable.name.toLowerCase(),
+        collection: collections[variable.variableCollectionId].name.toLowerCase(),
+        type: variable.resolvedType.toLowerCase(),
+        mode: modes[modeId].toLowerCase(),
+        value: getVariableValueRecursive(variableId, modeId),
       });
     });
-  });
+    return acc;
+  }, []);
 
-  return computedCollections;
+  return assembledVariables;
 };
 
 // format the collections to be human readable and iterable
-const formatCollections = (collections, selectedCollections) => {
-  const collectionKeys = Object.keys(collections);
-  const formattedCollections = [];
-  collectionKeys.forEach((collectionKey) => {
-    const collection = collections[collectionKey];
-    const collectionModeIds = Object.keys(collection.modes);
-    if (selectedCollections.includes(collection.name)) {
-      formattedCollections.push({
-        id: collection.id,
-        name: collection.name,
-        modes: collectionModeIds.map((modeId) => collection.modes[modeId]),
+const formatCollections = (variables, selectedCollections) => {
+
+  const formattedCollections = variables.reduce((acc, variable) => {
+    if (selectedCollections.includes(variable.collection)) {
+      const nameParts = variable.name.split("/");
+      let currentLevel = acc;
+
+      // Ensure mode level exists
+      currentLevel[variable.mode] = currentLevel[variable.mode] || {};
+      currentLevel = currentLevel[variable.mode];
+
+      // Ensure collection level exists
+      currentLevel[variable.collection] = currentLevel[variable.collection] || {};
+      currentLevel = currentLevel[variable.collection];
+
+      // Ensure type level exists
+      currentLevel[variable.type] = currentLevel[variable.type] || {};
+      currentLevel = currentLevel[variable.type];
+
+      nameParts.forEach((part, index) => {
+        const sanitizedPart = part.replace(/ /g, "-");
+        if (index === nameParts.length - 1) {
+          currentLevel[sanitizedPart] = {
+            value: variable.value,
+            name: variable.name,
+          };
+        } else {
+          currentLevel[sanitizedPart] = currentLevel[sanitizedPart] || {};
+          currentLevel = currentLevel[sanitizedPart];
+        }
       });
     }
-  });
+    return acc;
+  }, {});
+  console.log("formattedCollections", formattedCollections);
+
   return formattedCollections;
 };
 
+const saveTokenFiles = (data) => {
+  const fileData = [];
+
+  Object.keys(data).forEach((mode) => {
+    Object.keys(data[mode]).forEach((collection) => {
+      Bun.write(`tokens/${mode}/${collection}.json`, JSON.stringify(data[mode][collection], null, 2));
+    });
+  });
+
+
+}
+
 loadFimaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {
-  const computedCollections = computeCollections(figmaData);
-  const data = formatCollections(computedCollections, ["Primitive"]);
-  console.dir(data, { depth: null });
+  const computedVariables = getComputedVariables(figmaData);
+  const data = formatCollections(computedVariables, ["semantic"]);
+  saveTokenFiles(data);
 });
