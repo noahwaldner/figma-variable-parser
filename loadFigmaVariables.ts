@@ -118,7 +118,6 @@ const formatCollections = (variables) => {
         currentLevel[sanitizedPart] = {
           value: variable.value,
           name: variable.name,
-          type: variable.type,
         };
       } else {
         currentLevel[sanitizedPart] = currentLevel[sanitizedPart] || {};
@@ -132,11 +131,33 @@ const formatCollections = (variables) => {
 };
 
 const saveTokenFiles = (data) => {
+  const outputMap = {
+    shared: [],
+    themes: {
+
+    }
+  }
   Object.keys(data).forEach((mode) => {
     Object.keys(data[mode]).forEach((collection) => {
-      Bun.write(`tokens/${mode}/${collection}.json`, JSON.stringify(data[mode][collection], null, 2));
+      const fileName = `tokens/${mode}/${collection}.json`
+      if (mode == "default") {
+        outputMap.shared.push({
+          name: collection,
+          theme: "default",
+          source: fileName
+        })
+      } else {
+        outputMap.themes[mode] = outputMap.themes[mode] || [];
+        outputMap.themes[mode].push({
+          name: collection,
+          theme: mode,
+          source: fileName
+        })
+      }
+      Bun.write(fileName, JSON.stringify(data[mode][collection], null, 2));
     });
   });
+  Bun.write("token-map.json", JSON.stringify(outputMap, null, 2));
 }
 
 fetchFigmaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {

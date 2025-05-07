@@ -8,13 +8,13 @@ export const tailwindFormat = {
       dictionary: dictionary,
       formatting: {},
     });
-    console.log(formatProperty);
+    // console.log(formatProperty);
     return "";
   },
 };
 
 const template = (theme) => {
-  console.log(theme);
+  // console.log(theme);
   return `import plugin from 'tailwindcss/plugin';
   
   export default {

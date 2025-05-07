@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run loadFigmaVariables.ts",
-    "build": "style-dictionary build --config styleDictionary/config.js"
+    "build": "bun run styleDictionary/build.ts"
   },
   "keywords": [],
   "author": "",
