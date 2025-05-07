@@ -48,7 +48,6 @@ StyleDictionary.registerTransformGroup({
 Bun.file("token-map.json")
   .json()
   .then((tokenMap) => {
-    console.log(tokenMap);
     new StyleDictionary({
       source: tokenMap.shared.map((token) => `${token.source}`),
       platforms: {

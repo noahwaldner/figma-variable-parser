@@ -163,7 +163,5 @@ const saveTokenFiles = (data) => {
 fetchFigmaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {
   const computedVariables = getComputedVariables(figmaData, ["VariableCollectionId:80:1510", "VariableCollectionId:80:1513", "VariableCollectionId:419:1502"]);
   const data = formatCollections(computedVariables);
-  console.dir(data, { depth: null });
-  Bun.write(`data.json`, JSON.stringify(data, null, 2));
   saveTokenFiles(data);
 });
