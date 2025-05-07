@@ -10,6 +10,8 @@ const loadFimaVariables = async (fileKey) => {
     }
   ).then((res) => res.json());
 
+
+
   return {
     collections: figmaResponse.meta.variableCollections,
     variables: figmaResponse.meta.variables,
@@ -18,26 +20,49 @@ const loadFimaVariables = async (fileKey) => {
 
 
 
-const getComputedVariables = ({ collections, variables }) => {
+const getComputedVariables = ({ collections, variables }, selectedCollections) => {
 
-  const getVariableValueRecursive = (variableId, modeId, iteration = 0, parentDebug = null) => {
+  const getVariableValueRecursive = (variableId, modeId) => {
     const variable = variables[variableId];
     if (!variable) {
-      return null;
+      return {
+        name: null,
+        value: null,
+      };
     }
-    if (variable.variableCollectionId == "VariableCollectionId:80:1510") {
-      return variable.valuesByMode["80:0"];
+
+    const modeKeys = Object.keys(variable.valuesByMode);
+
+    let variableValue = null;
+    if (modeKeys.length === 1) {
+      variableValue = variable.valuesByMode[modeKeys[0]];
+    } else {
+      variableValue = variable.valuesByMode[modeId];
     }
-    const variableValue = variable.valuesByMode[modeId];
+
+
+
     if (variableValue?.type === "VARIABLE_ALIAS") {
-      return getVariableValueRecursive(variableValue.id, modeId, iteration + 1, variables[variableId]);
+      const aliasedVariable = getVariableValueRecursive(variableValue.id, modeId);
+      return {
+        name: variable.name,
+        value: `ref_${aliasedVariable.name?.toLowerCase()}`,
+      }
     }
-    return variableValue;
+
+    const returnObject = {
+      name: variable.name,
+      value: variableValue,
+    };
+
+
+    return returnObject;
   };
 
   const modes = Object.keys(collections).reduce((acc, collectionId) => {
     const collection = collections[collectionId];
-    if (collection.hiddenFromPublishing) {
+
+    if (!selectedCollections.includes(collection.name.toLowerCase())) {
       return acc;
     }
     collection.modes.forEach((mode) => {
@@ -48,17 +73,17 @@ const getComputedVariables = ({ collections, variables }) => {
 
   const assembledVariables = Object.keys(variables).reduce((acc, variableId) => {
     const variable = variables[variableId];
+
     Object.keys(variable.valuesByMode).forEach((modeId) => {
-      if (variable.hiddenFromPublishing) {
-        return acc;
+      if (modes.hasOwnProperty(modeId)) {
+        acc.push({
+          name: variable.name.toLowerCase(),
+          collection: collections[variable.variableCollectionId].name.replace(" ", "-").toLowerCase(),
+          type: variable.resolvedType.toLowerCase(),
+          mode: modes[modeId].toLowerCase(),
+          value: getVariableValueRecursive(variableId, modeId).value,
+        });
       }
-      acc.push({
-        name: variable.name.toLowerCase(),
-        collection: collections[variable.variableCollectionId].name.toLowerCase(),
-        type: variable.resolvedType.toLowerCase(),
-        mode: modes[modeId].toLowerCase(),
-        value: getVariableValueRecursive(variableId, modeId),
-      });
     });
     return acc;
   }, []);
@@ -67,47 +92,40 @@ const getComputedVariables = ({ collections, variables }) => {
 };
 
 // format the collections to be human readable and iterable
-const formatCollections = (variables, selectedCollections) => {
+const formatCollections = (variables) => {
 
   const formattedCollections = variables.reduce((acc, variable) => {
-    if (selectedCollections.includes(variable.collection)) {
-      const nameParts = variable.name.split("/");
-      let currentLevel = acc;
+    const nameParts = variable.name.split("/");
+    let currentLevel = acc;
 
-      // Ensure mode level exists
-      currentLevel[variable.mode] = currentLevel[variable.mode] || {};
-      currentLevel = currentLevel[variable.mode];
+    // Ensure mode level exists
+    currentLevel[variable.mode] = currentLevel[variable.mode] || {};
+    currentLevel = currentLevel[variable.mode];
 
-      // Ensure collection level exists
-      currentLevel[variable.collection] = currentLevel[variable.collection] || {};
-      currentLevel = currentLevel[variable.collection];
+    // Ensure collection level exists
+    currentLevel[variable.collection] = currentLevel[variable.collection] || {};
+    currentLevel = currentLevel[variable.collection];
 
-      // Ensure type level exists
-      currentLevel[variable.type] = currentLevel[variable.type] || {};
-      currentLevel = currentLevel[variable.type];
-
-      nameParts.forEach((part, index) => {
-        const sanitizedPart = part.replace(/ /g, "-");
-        if (index === nameParts.length - 1) {
-          currentLevel[sanitizedPart] = {
-            value: variable.value,
-            name: variable.name,
-          };
-        } else {
-          currentLevel[sanitizedPart] = currentLevel[sanitizedPart] || {};
-          currentLevel = currentLevel[sanitizedPart];
-        }
-      });
-    }
+    nameParts.forEach((part, index) => {
+      const sanitizedPart = part.replace(/ /g, "-");
+      if (index === nameParts.length - 1) {
+        currentLevel[sanitizedPart] = {
+          value: variable.value,
+          name: variable.name,
+          type: variable.type,
+        };
+      } else {
+        currentLevel[sanitizedPart] = currentLevel[sanitizedPart] || {};
+        currentLevel = currentLevel[sanitizedPart];
+      }
+    });
     return acc;
   }, {});
-  console.log("formattedCollections", formattedCollections);
 
   return formattedCollections;
 };
 
 const saveTokenFiles = (data) => {
-  const fileData = [];
 
   Object.keys(data).forEach((mode) => {
     Object.keys(data[mode]).forEach((collection) => {
@@ -119,7 +137,9 @@ const saveTokenFiles = (data) => {
 }
 
 loadFimaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {
-  const computedVariables = getComputedVariables(figmaData);
-  const data = formatCollections(computedVariables, ["semantic"]);
+  const computedVariables = getComputedVariables(figmaData, ["primitive", "semantic"]);
+  const data = formatCollections(computedVariables);
+  console.dir(data, { depth: null });
+  Bun.write(`data.json`, JSON.stringify(data, null, 2));
   saveTokenFiles(data);
 });
