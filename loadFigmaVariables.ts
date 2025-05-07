@@ -1,6 +1,7 @@
 import Bun from "bun";
 
-const loadFimaVariables = async (fileKey) => {
+const fetchFigmaVariables = async (fileKey) => {
+
   const figmaResponse = await fetch(
     `https://api.figma.com/v1/files/${fileKey}/variables/local`,
     {
@@ -11,7 +12,14 @@ const loadFimaVariables = async (fileKey) => {
   ).then((res) => res.json());
 
 
+  return {
+    collections: figmaResponse.meta.variableCollections,
+    variables: figmaResponse.meta.variables,
+  };
+};
 
+const loadFigmaVariablesFromFile = async () => {
+  const figmaResponse = await Bun.file(`figma-response.json`).json();
   return {
     collections: figmaResponse.meta.variableCollections,
     variables: figmaResponse.meta.variables,
@@ -62,9 +70,7 @@ const getComputedVariables = ({ collections, variables }, selectedCollections) =
   const modes = Object.keys(collections).reduce((acc, collectionId) => {
     const collection = collections[collectionId];
 
-    if (!selectedCollections.includes(collection.name.toLowerCase())) {
-      return acc;
-    }
+
     collection.modes.forEach((mode) => {
       acc[mode.modeId] = mode.name;
     });
@@ -75,7 +81,7 @@ const getComputedVariables = ({ collections, variables }, selectedCollections) =
     const variable = variables[variableId];
 
     Object.keys(variable.valuesByMode).forEach((modeId) => {
-      if (modes.hasOwnProperty(modeId)) {
+      if (selectedCollections.includes(variable.variableCollectionId)) {
         acc.push({
           name: variable.name.toLowerCase(),
           collection: collections[variable.variableCollectionId].name.replace(" ", "-").toLowerCase(),
@@ -126,18 +132,15 @@ const formatCollections = (variables) => {
 };
 
 const saveTokenFiles = (data) => {
-
   Object.keys(data).forEach((mode) => {
     Object.keys(data[mode]).forEach((collection) => {
       Bun.write(`tokens/${mode}/${collection}.json`, JSON.stringify(data[mode][collection], null, 2));
     });
   });
-
-
 }
 
-loadFimaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {
-  const computedVariables = getComputedVariables(figmaData, ["primitive", "semantic"]);
+fetchFigmaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {
+  const computedVariables = getComputedVariables(figmaData, ["VariableCollectionId:80:1510", "VariableCollectionId:80:1513", "VariableCollectionId:419:1502"]);
   const data = formatCollections(computedVariables);
   console.dir(data, { depth: null });
   Bun.write(`data.json`, JSON.stringify(data, null, 2));
