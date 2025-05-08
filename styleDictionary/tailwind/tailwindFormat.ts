@@ -1,9 +1,11 @@
 import { buildTheme } from "./buildTheme";
+import { buildUtils } from "./buildUtils";
 
 export const tailwindFormat = {
   name: "tailwind",
   format: ({ dictionary, options }) => {
     const theme = buildTheme({ dictionary });
+    const utils = buildUtils({ dictionary });
     // console.log(dictionary.allTokens);
     console.dir(theme, { depth: null });
 
