@@ -1,6 +1,6 @@
 import Bun from "bun";
 import StyleDictionary from "style-dictionary";
-import { tailwindFormat } from "./tailwindFormat.js";
+import { tailwindFormat } from "./tailwind/tailwindFormat";
 
 StyleDictionary.registerTransform({
   type: `value`,
@@ -33,6 +33,18 @@ StyleDictionary.registerTransform({
   },
 });
 
+StyleDictionary.registerTransform({
+  type: `value`,
+  transitive: true,
+  name: `value/valueToRef`,
+  filter: (token) => {
+    return typeof token.value !== "string" || !token.value.startsWith("ref_");
+  },
+  transform: (token) => {
+    return `ref_${token.name.replace(/\//g, "-")}`;
+  },
+});
+
 StyleDictionary.registerFormat(tailwindFormat);
 
 StyleDictionary.registerTransformGroup({
@@ -44,6 +56,7 @@ StyleDictionary.registerTransformGroup({
     "value/refToString",
   ],
 });
+
 
 Bun.file("token-map.json")
   .json()
@@ -70,15 +83,18 @@ Bun.file("token-map.json")
             },
           ],
         },
+      },
+    }).buildAllPlatforms();
+
+    new StyleDictionary({
+      source: ["tokens/**/*.json"],
+      platforms: {
         tailwind: {
-          buildPath: "dist/css/",
-          filter: (token) => {
-            return token.filePath.startsWith("tokens/light/");
-          },
-          transforms: ["attribute/cti", "name/kebab"],
+          buildPath: "dist/tailwind/",
+          transforms: ["value/valueToRef", "value/refToString"],
           files: [
             {
-              destination: "tailwind.js",
+              destination: "tailwind.config.js",
               format: "tailwind",
             },
           ],
@@ -106,16 +122,6 @@ Bun.file("token-map.json")
                   selector: `.${theme}`,
                 },
                 format: "css/variables",
-              },
-            ],
-          },
-          tailwind: {
-            buildPath: "dist/css/",
-            transforms: ["attribute/cti", "name/kebab"],
-            files: [
-              {
-                destination: "tailwind.js",
-                format: "tailwind",
               },
             ],
           },

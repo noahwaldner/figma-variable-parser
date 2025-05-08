@@ -1,7 +1,6 @@
 import Bun from "bun";
 
 const fetchFigmaVariables = async (fileKey) => {
-
   const figmaResponse = await fetch(
     `https://api.figma.com/v1/files/${fileKey}/variables/local`,
     {
@@ -10,7 +9,6 @@ const fetchFigmaVariables = async (fileKey) => {
       },
     }
   ).then((res) => res.json());
-
 
   return {
     collections: figmaResponse.meta.variableCollections,
@@ -40,15 +38,12 @@ const getComputedVariables = ({ collections, variables }, selectedCollections) =
     }
 
     const modeKeys = Object.keys(variable.valuesByMode);
-
     let variableValue = null;
     if (modeKeys.length === 1) {
       variableValue = variable.valuesByMode[modeKeys[0]];
     } else {
       variableValue = variable.valuesByMode[modeId];
     }
-
-
 
     if (variableValue?.type === "VARIABLE_ALIAS") {
       const aliasedVariable = getVariableValueRecursive(variableValue.id, modeId);
@@ -58,19 +53,14 @@ const getComputedVariables = ({ collections, variables }, selectedCollections) =
       }
     }
 
-    const returnObject = {
+    return {
       name: variable.name,
       value: variableValue,
     };
-
-
-    return returnObject;
   };
 
   const modes = Object.keys(collections).reduce((acc, collectionId) => {
     const collection = collections[collectionId];
-
-
     collection.modes.forEach((mode) => {
       acc[mode.modeId] = mode.name;
     });
@@ -97,18 +87,16 @@ const getComputedVariables = ({ collections, variables }, selectedCollections) =
   return assembledVariables;
 };
 
-// format the collections to be human readable and iterable
-const formatCollections = (variables) => {
 
+// generate a style directory compatible structure
+const formatCollections = (variables) => {
   const formattedCollections = variables.reduce((acc, variable) => {
     const nameParts = variable.name.split("/");
     let currentLevel = acc;
 
-    // Ensure mode level exists
     currentLevel[variable.mode] = currentLevel[variable.mode] || {};
     currentLevel = currentLevel[variable.mode];
 
-    // Ensure collection level exists
     currentLevel[variable.collection] = currentLevel[variable.collection] || {};
     currentLevel = currentLevel[variable.collection];
 

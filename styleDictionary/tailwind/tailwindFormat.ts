@@ -1,15 +1,14 @@
-import { formattedVariables } from "style-dictionary/utils";
+import { buildTheme } from "./buildTheme";
 
 export const tailwindFormat = {
   name: "tailwind",
   format: ({ dictionary, options }) => {
-    const formatProperty = formattedVariables({
-      outputReferences: options.outputReferences,
-      dictionary: dictionary,
-      formatting: {},
-    });
+    const theme = buildTheme({ dictionary });
+    // console.log(dictionary.allTokens);
+    console.dir(theme, { depth: null });
+
     // console.log(formatProperty);
-    return "";
+    return "gdskgfdsaukzf";
   },
 };
 
