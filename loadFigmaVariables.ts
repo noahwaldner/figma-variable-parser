@@ -1,7 +1,7 @@
 import Bun from "bun";
-import { buildStyleDictionary } from "./styleDictionary/build";
+import { Config } from "./types";
 
-const fetchFigmaVariables = async (fileKey) => {
+const fetchFigmaVariables = async (fileKey: Config["figmaFileKey"]) => {
   const figmaResponse = await fetch(
     `https://api.figma.com/v1/files/${fileKey}/variables/local`,
     {
@@ -20,7 +20,7 @@ const fetchFigmaVariables = async (fileKey) => {
 
 
 
-const getComputedVariables = ({ collections, variables }, config: Config) => {
+const getComputedVariables = ({ collections, variables }, config: Config["tokenTypes"]) => {
 
   const selectedCollections: { collection: string, path?: string[], tokenType: string }[] = Object.entries(config).reduce((acc, [tokenType, selector]) => {
     return [...acc, ...selector.map(selector => ({
@@ -130,25 +130,14 @@ const formatCollections = (variables) => {
 };
 
 
-type Config = {
-  figmaFileKey: string,
-  themes: string[],
-  tokenTypes: {
-    theme: { collection: string, path?: string[] }[],
-    primitive: { collection: string, path?: string[] }[],
-    utility: { collection: string, path?: string[] }[]
-  }
-}
 
 
-Bun.file("config.json").json().then((config) => {
-  fetchFigmaVariables(config.figmaFileKey).then((figmaData) => {
+export const loadFigmaVariables = (config: Config) => {
+  return fetchFigmaVariables(config.figmaFileKey).then((figmaData) => {
     const computedVariables = getComputedVariables(figmaData, config.tokenTypes);
     const data = formatCollections(computedVariables);
     Bun.write("tokens/all-tokens.json", JSON.stringify(data, null, 2));
-    buildStyleDictionary(config);
-
   });
-});
+}
 
 

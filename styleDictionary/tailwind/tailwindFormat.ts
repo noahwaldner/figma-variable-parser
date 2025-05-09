@@ -1,12 +1,11 @@
 import { buildTheme } from "./buildTheme";
 import { buildTextUtil } from "./buildUtils";
+
 export const tailwindFormat = {
   name: "tailwind",
   format: ({ dictionary }) => {
-
     const theme = buildTheme({ dictionary });
     const utils = buildTextUtil({ dictionary });
-
     return template(theme, utils);
   },
 };

@@ -1,9 +1,7 @@
 {
   "figmaFileKey": "YusQBIqf7U9QnI8xmTLlqf",
-  "themes": [
-    "dark",
-    "light"
-  ],
+  "defaultTheme": "light",
+  "themes": ["dark", "light"],
   "tokenTypes": {
     "theme": [
       {
@@ -18,9 +16,7 @@
     "utility": [
       {
         "collection": "VariableCollectionId:419:1502",
-        "path": [
-          "text"
-        ]
+        "path": ["text"]
       }
     ]
   }

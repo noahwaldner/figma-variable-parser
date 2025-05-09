@@ -1,4 +1,5 @@
 import StyleDictionary from "style-dictionary";
+import { Config } from "../types";
 import { tailwindFormat } from "./tailwind/tailwindFormat";
 
 StyleDictionary.registerTransform({
@@ -32,15 +33,6 @@ StyleDictionary.registerTransform({
 });
 
 StyleDictionary.registerTransform({
-  type: `value`,
-  transitive: true,
-  name: `tailwind/nameToCSSVariable`,
-  transform: (token) => {
-    return `var(--${token.name.replace(/\//g, "-")})`;
-  },
-});
-
-StyleDictionary.registerTransform({
   type: `name`,
   transitive: true,
   name: `name/kebabWithoutThemeName`,
@@ -49,33 +41,61 @@ StyleDictionary.registerTransform({
   },
 });
 
+StyleDictionary.registerTransform({
+  type: `value`,
+  transitive: true,
+  name: `tailwind/nameToCSSVariable`,
+  transform: (token) => {
+    return `var(--${token.name.replace(/\//g, "-")})`;
+  },
+});
 
 StyleDictionary.registerFormat(tailwindFormat);
 
-export const buildStyleDictionary = (config) => {
+export const buildStyleDictionary = async (config: Config) => {
   new StyleDictionary({
     source: ["tokens/all-tokens.json"],
     platforms: {
       cssPrimitives: {
-        buildPath: "dist/css/",
-        transforms: ["figma/colorToScaledRgbaString", "name/kebabWithoutThemeName"],
+        buildPath: "dist/",
+        transforms: ["figma/colorToScaledRgbaString", "name/kebabWithoutThemeName", "value/refToCSSVariable"],
         options: {
           showFileHeader: false,
         },
         files: [
           {
             filter: (token) => {
+              return token.attributes.type === "primitive" || token.attributes.theme === config.defaultTheme;
+            },
+            destination: "css/base.css",
+            format: "css/variables",
+          },
+          {
+            filter: (token) => {
               return token.attributes.type === "primitive";
             },
-            destination: "primitives.css",
+            destination: "themes/primitives.css",
             options: {
               selector: ".primitives",
             },
             format: "css/variables",
           },
+          ...config.themes.map((theme) => ({
+            filter: (token) => {
+              if (token.attributes.type == "theme") {
+                return token.attributes.theme === theme;
+              }
+              return token.attributes.type !== "primitive" && token.type !== "color";
+            },
+            destination: `themes/${theme}.css`,
+            options: {
+              selector: `.${theme}`,
+            },
+            format: "css/variables",
+          })),
         ],
       },
-      tailwindConfig: {
+      tailwind: {
         buildPath: "dist/tailwind/",
         transforms: ["figma/colorToScaledRgbaString", "tailwind/nameToCSSVariable"],
         files: [
@@ -86,27 +106,13 @@ export const buildStyleDictionary = (config) => {
           },
         ],
       },
-      cssThemes: {
-        buildPath: "dist/css/",
-        transforms: ["name/kebabWithoutThemeName", "figma/colorToScaledRgbaString", "value/refToCSSVariable"],
-        options: {
-          showFileHeader: false,
-        },
-        files: config.themes.map((theme) => ({
-          filter: (token) => {
-            if (token.attributes.type == "theme") {
-              return token.attributes.theme === theme;
-            }
-            return token.attributes.type !== "primitive" && token.type !== "color";
-          },
-          destination: `${theme}.css`,
-          options: {
-            selector: `.${theme}`,
-          },
-          format: "css/variables",
-        }),
-        ),
-      },
     },
   }).buildAllPlatforms();
+
+
 }
+
+
+
+
+
