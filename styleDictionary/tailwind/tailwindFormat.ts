@@ -2,8 +2,7 @@ import { buildTheme } from "./buildTheme";
 import { buildTextUtil } from "./buildUtils";
 export const tailwindFormat = {
   name: "tailwind",
-  format: ({ dictionary, options }) => {
-    // console.log(dictionary);
+  format: ({ dictionary }) => {
 
     const theme = buildTheme({ dictionary });
     const utils = buildTextUtil({ dictionary });
@@ -13,7 +12,6 @@ export const tailwindFormat = {
 };
 
 const template = (theme, plugins) => {
-  // console.log(theme);
   return `import plugin from 'tailwindcss/plugin';
   
   export default {

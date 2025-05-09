@@ -29,8 +29,6 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
 const getTheme = (dictionary: Dictionary) => {
     const tokens = dictionary.allTokens;
 
-    console.dir(tokens.filter((token) => token.path.includes("font-family")), { depth: null });
-
     return {
         colors: getObject({
             tokens,
