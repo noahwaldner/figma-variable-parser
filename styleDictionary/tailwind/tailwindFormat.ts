@@ -3,6 +3,8 @@ import { buildTextUtil } from "./buildUtils";
 export const tailwindFormat = {
   name: "tailwind",
   format: ({ dictionary, options }) => {
+    // console.log(dictionary);
+
     const theme = buildTheme({ dictionary });
     const utils = buildTextUtil({ dictionary });
 

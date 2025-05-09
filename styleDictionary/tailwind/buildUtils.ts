@@ -14,8 +14,6 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
         const property = path[path.length - 1];
         const variant = `'.${path.slice(0, -1).join('-')}'`;
 
-
-
         acc[variant] = acc[variant] || {};
         acc[variant][property] = `theme('${token.value.replace("ref_", "").replace(/\//g, ".")}')`;
 

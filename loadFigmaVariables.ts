@@ -81,16 +81,23 @@ const getComputedVariables = ({ collections, variables }, config: Config) => {
     Object.keys(variable.valuesByMode).forEach((modeId) => {
 
 
+
+
       selectedCollections.forEach(({ collection, path, tokenType }) => {
+
         if (collection == variable.variableCollectionId) {
+
           const tokenPath = path ? variable.name.split("/") : [];
           if (!path || (path && path.every((segment, index) => tokenPath[index].toLowerCase() === segment.toLowerCase()))) {
             acc.push({
               name: variable.name.toLowerCase(),
-              collection: collections[variable.variableCollectionId].name.replace(" ", "-").toLowerCase(),
-              type: tokenType.toLowerCase(),
-              theme: modes[modeId].toLowerCase(),
+              type: variable.resolvedType.toLowerCase(),
               value: getVariableValueRecursive(variableId, modeId).value,
+              attributes: {
+                collection: collections[variable.variableCollectionId].name.replace(" ", "-").toLowerCase(),
+                type: tokenType.toLowerCase(),
+                theme: modes[modeId].toLowerCase(),
+              },
 
             });
           }
@@ -110,19 +117,13 @@ const formatCollections = (variables) => {
     const nameParts = variable.name.split("/");
     let currentLevel = acc;
 
-    currentLevel[variable.theme] = currentLevel[variable.theme] || {};
-    currentLevel = currentLevel[variable.theme];
-
-    currentLevel[variable.collection] = currentLevel[variable.collection] || {};
-    currentLevel = currentLevel[variable.collection];
+    currentLevel[variable.attributes.theme] = currentLevel[variable.attributes.theme] || {};
+    currentLevel = currentLevel[variable.attributes.theme];
 
     nameParts.forEach((part, index) => {
       const sanitizedPart = part.replace(/ /g, "-");
       if (index === nameParts.length - 1) {
-        currentLevel[sanitizedPart] = {
-          value: variable.value,
-          name: variable.name,
-        };
+        currentLevel[sanitizedPart] = variable;
       } else {
         currentLevel[sanitizedPart] = currentLevel[sanitizedPart] || {};
         currentLevel = currentLevel[sanitizedPart];
@@ -135,15 +136,9 @@ const formatCollections = (variables) => {
 };
 
 const saveTokenFiles = (data) => {
-  const outputMap = {
-    shared: [],
-    themes: {
-
-    }
-  }
   Object.keys(data).forEach((theme) => {
     Object.keys(data[theme]).forEach((collection) => {
-      const fileName = `tokens/${theme}/${collection}.json`
+      const fileName = `tokens/${theme}.json`
       if (theme == "default") {
         outputMap.shared.push({
           name: collection,
@@ -166,32 +161,49 @@ const saveTokenFiles = (data) => {
 }
 
 type Config = {
-  theme: { collection: string, path?: string[] }[],
-  primitive: { collection: string, path?: string[] }[],
-  utility: { collection: string, path?: string[] }[]
+  figmaFileKey: string,
+  themes: string[],
+  tokenTypes: {
+    theme: { collection: string, path?: string[] }[],
+    primitive: { collection: string, path?: string[] }[],
+    utility: { collection: string, path?: string[] }[]
+  }
 }
 
 const config: Config = {
-  theme: [
-    {
-      collection: "VariableCollectionId:80:1513",
-    }
+  figmaFileKey: "YusQBIqf7U9QnI8xmTLlqf",
+  themes: [
+    "dark",
+    "light",
   ],
-  primitive: [
-    {
-      collection: "VariableCollectionId:80:1510",
-    }
-  ],
-  utility: [
-    {
-      collection: "VariableCollectionId:419:1502",
-      path: ["text"],
-    }
-  ]
+  tokenTypes: {
+    theme: [
+      {
+        collection: "VariableCollectionId:80:1513",
+      }
+    ],
+    primitive: [
+      {
+        collection: "VariableCollectionId:80:1510",
+      }
+    ],
+    utility: [
+      {
+        collection: "VariableCollectionId:419:1502",
+        path: ["text"],
+      }
+    ]
+  }
+
 }
 
-fetchFigmaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {
-  const computedVariables = getComputedVariables(figmaData, config);
-  const data = formatCollections(computedVariables);
-  saveTokenFiles(data);
+Bun.file("config.json").json().then((config) => {
+  fetchFigmaVariables(config.figmaFileKey).then((figmaData) => {
+    const computedVariables = getComputedVariables(figmaData, config.tokenTypes);
+    const data = formatCollections(computedVariables);
+    Bun.write("tokens/all-tokens.json", JSON.stringify(data, null, 2));
+    // saveTokenFiles(data);
+  });
 });
+
+
