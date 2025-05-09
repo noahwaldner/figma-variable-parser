@@ -5,12 +5,12 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
 
     const matchingTokens = tokens?.filter(
         (token) =>
-            identifier.every((idSegment, index) => token.path[index] === idSegment) &&
+            identifier.every((idSegment, index) => token.path[index + 1] === idSegment) &&
             (filter ? filter(token) : true),
     ) || [];
 
     return matchingTokens.reduce((acc, token) => {
-        const path = token.path.slice(identifier.length);
+        const path = token.path.slice(identifier.length + 1);
         let currentLevel = acc;
         path.forEach((segment, index) => {
             if (index === path.length - 1) {
@@ -29,12 +29,14 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
 const getTheme = (dictionary: Dictionary) => {
     const tokens = dictionary.allTokens;
 
+    console.dir(tokens.filter((token) => token.path.includes("font-family")), { depth: null });
+
     return {
         colors: getObject({
             tokens,
             identifier: ['color'],
             filter: (token) => {
-                return !token.filePath.includes("primitive");
+                return token.attributes.type !== "primitive";
             },
         }),
         extend: {

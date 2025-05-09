@@ -17,7 +17,6 @@ StyleDictionary.registerTransform({
     );
   },
   transform: (token) => {
-    // token.value will be resolved and transformed at this point
     return `rgba(${Math.round(token.value.r * 255)}, ${Math.round(token.value.g * 255)}, ${Math.round(token.value.b * 255)}, ${token.value.a})`;
   },
 });
@@ -38,14 +37,9 @@ StyleDictionary.registerTransform({
 StyleDictionary.registerTransform({
   type: `value`,
   transitive: true,
-  name: `value/referenceToPrimitive`,
-  filter: (token) => {
-    return token.attributes.type !== "primitive";
-  },
+  name: `tailwind/nameToCSSVariable`,
   transform: (token) => {
-    console.log(token);
-
-    return `ref_${token.name.replace(/\//g, "-")}`;
+    return `var(--${token.name.replace(/\//g, "-")})`;
   },
 });
 
@@ -91,28 +85,29 @@ Bun.file("config.json")
             },
           ],
         },
-        // tailwindConfig: {
-        //   buildPath: "dist/tailwind/",
-        //   transforms: ["value/valueToRef"],
-        //   files: [
-        //     {
-        //       filter: (token) => {
-        //         return token.attributes.type === "primitive" || token.attributes.type === "utility";
-        //       },
-        //       destination: "tailwind.config.js",
-        //       format: "tailwind",
-        //     },
-        //   ],
-        // },
+        tailwindConfig: {
+          buildPath: "dist/tailwind/",
+          transforms: ["figma/colorToScaledRgbaString", "tailwind/nameToCSSVariable"],
+          files: [
+            {
+
+              destination: "tailwind.config.js",
+              format: "tailwind",
+            },
+          ],
+        },
         cssThemes: {
           buildPath: "dist/css/",
-          transforms: ["figma/colorToScaledRgbaString", "name/kebabWithoutThemeName", "value/refToCSSVariable"],
+          transforms: ["name/kebabWithoutThemeName", "figma/colorToScaledRgbaString", "value/refToCSSVariable"],
           options: {
             showFileHeader: false,
           },
           files: config.themes.map((theme) => ({
             filter: (token) => {
-              return token.attributes.type === "theme" && token.attributes.theme === theme;
+              if (token.attributes.type == "theme") {
+                return token.attributes.theme === theme;
+              }
+              return token.attributes.type !== "primitive" && token.type !== "color";
             },
             destination: `${theme}.css`,
             options: {

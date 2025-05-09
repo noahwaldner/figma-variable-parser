@@ -4,18 +4,18 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
 
     const matchingTokens = tokens?.filter(
         (token) =>
-            identifier.every((idSegment, index) => token.path[index] === idSegment) &&
+            identifier.every((idSegment, index) => token.path[index + 1] === idSegment) &&
             (filter ? filter(token) : true),
     ) || [];
 
     return matchingTokens.reduce((acc, token) => {
 
-        const path = token.path.slice(identifier.length);
+        const path = token.path.slice(identifier.length + 1);
         const property = path[path.length - 1];
         const variant = `'.${path.slice(0, -1).join('-')}'`;
 
         acc[variant] = acc[variant] || {};
-        acc[variant][property] = `theme('${token.value.replace("ref_", "").replace(/\//g, ".")}')`;
+        acc[variant][property] = `"${token.value}"`;
 
         return acc;
     }, {});
@@ -37,10 +37,10 @@ const getUtilClasses = (dictionary: Dictionary, identifier: string[]) => {
             if (acc !== '') {
                 acc += `, `;
             }
-            acc += `${propertyKey}: ${property}`;
+            acc += `${propertyKey.replace(/-./g, x => x[1].toUpperCase())}: ${property}`;
             return acc;
         }, '');
-        acc += `${variantKey}: { ${properties} }`;
+        acc += `${variantKey}: { ${properties} }, `;
         return acc;
     }, '');
 
@@ -48,7 +48,7 @@ const getUtilClasses = (dictionary: Dictionary, identifier: string[]) => {
 };
 
 export const buildTextUtil = ({ dictionary }: { dictionary: Dictionary }): string => {
-    return `plugin(function({ addUtilities, theme }) {
+    return `plugin(function({ addUtilities }) {
       addUtilities({
         ${getUtilClasses(dictionary, ['text'])}
       })
