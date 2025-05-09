@@ -1,6 +1,4 @@
-import Bun from "bun";
 import StyleDictionary from "style-dictionary";
-import { logVerbosityLevels } from "style-dictionary/enums";
 import { tailwindFormat } from "./tailwind/tailwindFormat";
 
 StyleDictionary.registerTransform({
@@ -20,7 +18,6 @@ StyleDictionary.registerTransform({
     return `rgba(${Math.round(token.value.r * 255)}, ${Math.round(token.value.g * 255)}, ${Math.round(token.value.b * 255)}, ${token.value.a})`;
   },
 });
-
 
 StyleDictionary.registerTransform({
   type: `value`,
@@ -55,69 +52,61 @@ StyleDictionary.registerTransform({
 
 StyleDictionary.registerFormat(tailwindFormat);
 
-
-
-Bun.file("config.json")
-  .json()
-  .then((config) => {
-    new StyleDictionary({
-      log: {
-        verbosity: logVerbosityLevels.verbose,
-      },
-      source: ["tokens/all-tokens.json"],
-      platforms: {
-        cssPrimitives: {
-          buildPath: "dist/css/",
-          transforms: ["figma/colorToScaledRgbaString", "name/kebabWithoutThemeName"],
-          options: {
-            showFileHeader: false,
-          },
-          files: [
-            {
-              filter: (token) => {
-                return token.attributes.type === "primitive";
-              },
-              destination: "primitives.css",
-              options: {
-                selector: ".primitives",
-              },
-              format: "css/variables",
-            },
-          ],
+export const buildStyleDictionary = (config) => {
+  new StyleDictionary({
+    source: ["tokens/all-tokens.json"],
+    platforms: {
+      cssPrimitives: {
+        buildPath: "dist/css/",
+        transforms: ["figma/colorToScaledRgbaString", "name/kebabWithoutThemeName"],
+        options: {
+          showFileHeader: false,
         },
-        tailwindConfig: {
-          buildPath: "dist/tailwind/",
-          transforms: ["figma/colorToScaledRgbaString", "tailwind/nameToCSSVariable"],
-          files: [
-            {
-
-              destination: "tailwind.config.js",
-              format: "tailwind",
-            },
-          ],
-        },
-        cssThemes: {
-          buildPath: "dist/css/",
-          transforms: ["name/kebabWithoutThemeName", "figma/colorToScaledRgbaString", "value/refToCSSVariable"],
-          options: {
-            showFileHeader: false,
-          },
-          files: config.themes.map((theme) => ({
+        files: [
+          {
             filter: (token) => {
-              if (token.attributes.type == "theme") {
-                return token.attributes.theme === theme;
-              }
-              return token.attributes.type !== "primitive" && token.type !== "color";
+              return token.attributes.type === "primitive";
             },
-            destination: `${theme}.css`,
+            destination: "primitives.css",
             options: {
-              selector: `.${theme}`,
+              selector: ".primitives",
             },
             format: "css/variables",
-          }),
-          ),
-        },
+          },
+        ],
       },
-    }).buildAllPlatforms();
+      tailwindConfig: {
+        buildPath: "dist/tailwind/",
+        transforms: ["figma/colorToScaledRgbaString", "tailwind/nameToCSSVariable"],
+        files: [
+          {
 
-  })
+            destination: "tailwind.config.js",
+            format: "tailwind",
+          },
+        ],
+      },
+      cssThemes: {
+        buildPath: "dist/css/",
+        transforms: ["name/kebabWithoutThemeName", "figma/colorToScaledRgbaString", "value/refToCSSVariable"],
+        options: {
+          showFileHeader: false,
+        },
+        files: config.themes.map((theme) => ({
+          filter: (token) => {
+            if (token.attributes.type == "theme") {
+              return token.attributes.theme === theme;
+            }
+            return token.attributes.type !== "primitive" && token.type !== "color";
+          },
+          destination: `${theme}.css`,
+          options: {
+            selector: `.${theme}`,
+          },
+          format: "css/variables",
+        }),
+        ),
+      },
+    },
+  }).buildAllPlatforms();
+}

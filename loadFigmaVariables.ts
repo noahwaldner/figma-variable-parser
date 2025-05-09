@@ -1,22 +1,16 @@
 import Bun from "bun";
+import { buildStyleDictionary } from "./styleDictionary/build";
 
 const fetchFigmaVariables = async (fileKey) => {
-  // const figmaResponse = await fetch(
-  //   `https://api.figma.com/v1/files/${fileKey}/variables/local`,
-  //   {
-  //     headers: {
-  //       "X-Figma-Token": process.env.FIGMA_ACCESS_TOKEN,
-  //     },
-  //   }
-  // ).then((res) => res.json());
+  const figmaResponse = await fetch(
+    `https://api.figma.com/v1/files/${fileKey}/variables/local`,
+    {
+      headers: {
+        "X-Figma-Token": process.env.FIGMA_ACCESS_TOKEN,
+      },
+    }
+  ).then((res) => res.json());
 
-  const figmaResponse = await Bun.file(`figma-response.json`).json();
-  return {
-    collections: figmaResponse.meta.variableCollections,
-    variables: figmaResponse.meta.variables,
-  };
-
-  Bun.write("figma-response.json", JSON.stringify(figmaResponse, null, 2));
   return {
     collections: figmaResponse.meta.variableCollections,
     variables: figmaResponse.meta.variables,
@@ -135,30 +129,6 @@ const formatCollections = (variables) => {
   return formattedCollections;
 };
 
-const saveTokenFiles = (data) => {
-  Object.keys(data).forEach((theme) => {
-    Object.keys(data[theme]).forEach((collection) => {
-      const fileName = `tokens/${theme}.json`
-      if (theme == "default") {
-        outputMap.shared.push({
-          name: collection,
-          theme: "default",
-          source: fileName
-        })
-      } else {
-        outputMap.themes[theme] = outputMap.themes[theme] || [];
-        outputMap.themes[theme].push({
-          name: collection,
-          theme: theme,
-          source: fileName
-        })
-      }
-
-      Bun.write(fileName, JSON.stringify(data[theme][collection], null, 2));
-    });
-  });
-  Bun.write("token-map.json", JSON.stringify(outputMap, null, 2));
-}
 
 type Config = {
   figmaFileKey: string,
@@ -170,39 +140,14 @@ type Config = {
   }
 }
 
-const config: Config = {
-  figmaFileKey: "YusQBIqf7U9QnI8xmTLlqf",
-  themes: [
-    "dark",
-    "light",
-  ],
-  tokenTypes: {
-    theme: [
-      {
-        collection: "VariableCollectionId:80:1513",
-      }
-    ],
-    primitive: [
-      {
-        collection: "VariableCollectionId:80:1510",
-      }
-    ],
-    utility: [
-      {
-        collection: "VariableCollectionId:419:1502",
-        path: ["text"],
-      }
-    ]
-  }
-
-}
 
 Bun.file("config.json").json().then((config) => {
   fetchFigmaVariables(config.figmaFileKey).then((figmaData) => {
     const computedVariables = getComputedVariables(figmaData, config.tokenTypes);
     const data = formatCollections(computedVariables);
     Bun.write("tokens/all-tokens.json", JSON.stringify(data, null, 2));
-    // saveTokenFiles(data);
+    buildStyleDictionary(config);
+
   });
 });
 
