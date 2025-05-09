@@ -91,7 +91,7 @@ Bun.file("token-map.json")
       platforms: {
         tailwind: {
           buildPath: "dist/tailwind/",
-          transforms: ["value/valueToRef", "value/refToString"],
+          transforms: ["value/valueToRef"],
           files: [
             {
               destination: "tailwind.config.js",

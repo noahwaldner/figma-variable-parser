@@ -1,32 +1,40 @@
 import Bun from "bun";
 
 const fetchFigmaVariables = async (fileKey) => {
-  const figmaResponse = await fetch(
-    `https://api.figma.com/v1/files/${fileKey}/variables/local`,
-    {
-      headers: {
-        "X-Figma-Token": process.env.FIGMA_ACCESS_TOKEN,
-      },
-    }
-  ).then((res) => res.json());
+  // const figmaResponse = await fetch(
+  //   `https://api.figma.com/v1/files/${fileKey}/variables/local`,
+  //   {
+  //     headers: {
+  //       "X-Figma-Token": process.env.FIGMA_ACCESS_TOKEN,
+  //     },
+  //   }
+  // ).then((res) => res.json());
 
-  return {
-    collections: figmaResponse.meta.variableCollections,
-    variables: figmaResponse.meta.variables,
-  };
-};
-
-const loadFigmaVariablesFromFile = async () => {
   const figmaResponse = await Bun.file(`figma-response.json`).json();
   return {
     collections: figmaResponse.meta.variableCollections,
     variables: figmaResponse.meta.variables,
   };
+
+  Bun.write("figma-response.json", JSON.stringify(figmaResponse, null, 2));
+  return {
+    collections: figmaResponse.meta.variableCollections,
+    variables: figmaResponse.meta.variables,
+  };
 };
 
 
 
-const getComputedVariables = ({ collections, variables }, selectedCollections) => {
+
+const getComputedVariables = ({ collections, variables }, config: Config) => {
+
+  const selectedCollections: { collection: string, path?: string[], tokenType: string }[] = Object.entries(config).reduce((acc, [tokenType, selector]) => {
+    return [...acc, ...selector.map(selector => ({
+      ...selector,
+      tokenType
+    }))];
+  }, []);
+
 
   const getVariableValueRecursive = (variableId, modeId) => {
     const variable = variables[variableId];
@@ -71,15 +79,23 @@ const getComputedVariables = ({ collections, variables }, selectedCollections) =
     const variable = variables[variableId];
 
     Object.keys(variable.valuesByMode).forEach((modeId) => {
-      if (selectedCollections.includes(variable.variableCollectionId)) {
-        acc.push({
-          name: variable.name.toLowerCase(),
-          collection: collections[variable.variableCollectionId].name.replace(" ", "-").toLowerCase(),
-          type: variable.resolvedType.toLowerCase(),
-          mode: modes[modeId].toLowerCase(),
-          value: getVariableValueRecursive(variableId, modeId).value,
-        });
-      }
+
+
+      selectedCollections.forEach(({ collection, path, tokenType }) => {
+        if (collection == variable.variableCollectionId) {
+          const tokenPath = path ? variable.name.split("/") : [];
+          if (!path || (path && path.every((segment, index) => tokenPath[index].toLowerCase() === segment.toLowerCase()))) {
+            acc.push({
+              name: variable.name.toLowerCase(),
+              collection: collections[variable.variableCollectionId].name.replace(" ", "-").toLowerCase(),
+              type: tokenType.toLowerCase(),
+              theme: modes[modeId].toLowerCase(),
+              value: getVariableValueRecursive(variableId, modeId).value,
+
+            });
+          }
+        }
+      })
     });
     return acc;
   }, []);
@@ -94,8 +110,8 @@ const formatCollections = (variables) => {
     const nameParts = variable.name.split("/");
     let currentLevel = acc;
 
-    currentLevel[variable.mode] = currentLevel[variable.mode] || {};
-    currentLevel = currentLevel[variable.mode];
+    currentLevel[variable.theme] = currentLevel[variable.theme] || {};
+    currentLevel = currentLevel[variable.theme];
 
     currentLevel[variable.collection] = currentLevel[variable.collection] || {};
     currentLevel = currentLevel[variable.collection];
@@ -125,31 +141,57 @@ const saveTokenFiles = (data) => {
 
     }
   }
-  Object.keys(data).forEach((mode) => {
-    Object.keys(data[mode]).forEach((collection) => {
-      const fileName = `tokens/${mode}/${collection}.json`
-      if (mode == "default") {
+  Object.keys(data).forEach((theme) => {
+    Object.keys(data[theme]).forEach((collection) => {
+      const fileName = `tokens/${theme}/${collection}.json`
+      if (theme == "default") {
         outputMap.shared.push({
           name: collection,
           theme: "default",
           source: fileName
         })
       } else {
-        outputMap.themes[mode] = outputMap.themes[mode] || [];
-        outputMap.themes[mode].push({
+        outputMap.themes[theme] = outputMap.themes[theme] || [];
+        outputMap.themes[theme].push({
           name: collection,
-          theme: mode,
+          theme: theme,
           source: fileName
         })
       }
-      Bun.write(fileName, JSON.stringify(data[mode][collection], null, 2));
+
+      Bun.write(fileName, JSON.stringify(data[theme][collection], null, 2));
     });
   });
   Bun.write("token-map.json", JSON.stringify(outputMap, null, 2));
 }
 
+type Config = {
+  theme: { collection: string, path?: string[] }[],
+  primitive: { collection: string, path?: string[] }[],
+  utility: { collection: string, path?: string[] }[]
+}
+
+const config: Config = {
+  theme: [
+    {
+      collection: "VariableCollectionId:80:1513",
+    }
+  ],
+  primitive: [
+    {
+      collection: "VariableCollectionId:80:1510",
+    }
+  ],
+  utility: [
+    {
+      collection: "VariableCollectionId:419:1502",
+      path: ["text"],
+    }
+  ]
+}
+
 fetchFigmaVariables("YusQBIqf7U9QnI8xmTLlqf").then((figmaData) => {
-  const computedVariables = getComputedVariables(figmaData, ["VariableCollectionId:80:1510", "VariableCollectionId:80:1513", "VariableCollectionId:419:1502"]);
+  const computedVariables = getComputedVariables(figmaData, config);
   const data = formatCollections(computedVariables);
   saveTokenFiles(data);
 });

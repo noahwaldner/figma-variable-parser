@@ -1,20 +1,16 @@
 import { buildTheme } from "./buildTheme";
-import { buildUtils } from "./buildUtils";
-
+import { buildTextUtil } from "./buildUtils";
 export const tailwindFormat = {
   name: "tailwind",
   format: ({ dictionary, options }) => {
     const theme = buildTheme({ dictionary });
-    const utils = buildUtils({ dictionary });
-    // console.log(dictionary.allTokens);
-    console.dir(theme, { depth: null });
+    const utils = buildTextUtil({ dictionary });
 
-    // console.log(formatProperty);
-    return "gdskgfdsaukzf";
+    return template(theme, utils);
   },
 };
 
-const template = (theme) => {
+const template = (theme, plugins) => {
   // console.log(theme);
   return `import plugin from 'tailwindcss/plugin';
   
@@ -22,5 +18,6 @@ const template = (theme) => {
       darkMode: "class",
       prefix: "tw-",
       theme: ${JSON.stringify(theme)},
+      plugins: [${plugins}],
   };`;
 };

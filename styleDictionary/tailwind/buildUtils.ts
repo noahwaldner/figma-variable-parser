@@ -12,21 +12,23 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
 
         const path = token.path.slice(identifier.length);
         const property = path[path.length - 1];
-        const variant = `.${path.slice(0, -1).join('-')}`;
+        const variant = `'.${path.slice(0, -1).join('-')}'`;
+
+
 
         acc[variant] = acc[variant] || {};
-        acc[variant][property] = token.value;
+        acc[variant][property] = `theme('${token.value.replace("ref_", "").replace(/\//g, ".")}')`;
 
         return acc;
     }, {});
 };
 
 
-const getUtils = (dictionary: Dictionary) => {
+const getUtilClasses = (dictionary: Dictionary, identifier: string[]) => {
     const tokens = dictionary.allTokens
 
     const textTokens = getObject({
-        identifier: ['text'],
+        identifier,
         tokens,
     });
 
@@ -34,16 +36,23 @@ const getUtils = (dictionary: Dictionary) => {
         const variant = textTokens[variantKey];
         const properties = Object.keys(variant).reduce((acc, propertyKey) => {
             const property = variant[propertyKey];
+            if (acc !== '') {
+                acc += `, `;
+            }
             acc += `${propertyKey}: ${property}`;
             return acc;
         }, '');
-        acc += `${variantKey} { ${properties} }`;
+        acc += `${variantKey}: { ${properties} }`;
         return acc;
     }, '');
 
     return utils;
 };
 
-export const buildUtils = ({ dictionary }: { dictionary: Dictionary }): string => {
-    return getUtils(dictionary);
+export const buildTextUtil = ({ dictionary }: { dictionary: Dictionary }): string => {
+    return `plugin(function({ addUtilities, theme }) {
+      addUtilities({
+        ${getUtilClasses(dictionary, ['text'])}
+      })
+    })`
 };
