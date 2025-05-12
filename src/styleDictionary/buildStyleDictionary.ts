@@ -52,9 +52,9 @@ StyleDictionary.registerTransform({
 
 StyleDictionary.registerFormat(tailwindFormat);
 
-export const buildStyleDictionary = async (config: Config) => {
+export const buildStyleDictionary = (config: Config) => {
   const allTokensPath = new URL("../../.tmp/tokens/all-tokens.json", import.meta.url).pathname;
-  new StyleDictionary({
+  return new StyleDictionary({
     source: [allTokensPath],
     platforms: {
       cssBase: {
