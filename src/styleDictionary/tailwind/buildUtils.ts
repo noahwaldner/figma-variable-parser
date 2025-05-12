@@ -8,9 +8,7 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
             (filter ? filter(token) : true),
     ) || [];
 
-    type NestedObject = {
-        [key: string]: NestedObject | string;
-    };
+    type NestedObject = Record<string, Record<string, string>>;
 
     return matchingTokens.reduce<NestedObject>((acc, token) => {
 
@@ -18,8 +16,10 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
         const property = path[path.length - 1];
         const variant = `'.${path.slice(0, -1).join('-')}'`;
 
-        acc[variant] = acc[variant] || {};
-        acc[variant][property] = `"${token.value}"`;
+        if (property) {
+            acc[variant] = acc[variant] || {};
+            acc[variant][property] = `"${token.value}"`;
+        }
 
         return acc;
     }, {});
@@ -34,14 +34,15 @@ const getUtilClasses = (dictionary: Dictionary, identifier: string[]) => {
         tokens,
     });
 
-    const utils = Object.keys(textTokens).reduce((acc, variantKey) => {
-        const variant = textTokens[variantKey];
+    const utils = Object.entries(textTokens).reduce((acc, [variantKey, variant]) => {
+        if (!variant) return acc;
         const properties = Object.keys(variant).reduce((acc, propertyKey) => {
             const property = variant[propertyKey];
+            if (!property) return acc;
             if (acc !== '') {
                 acc += `, `;
             }
-            acc += `${propertyKey.replace(/-./g, x => x[1].toUpperCase())}: ${property}`;
+            acc += `${propertyKey.replace(/-./g, (match) => match.slice(-1).toUpperCase())}: ${property}`;
             return acc;
         }, '');
         acc += `${variantKey}: { ${properties} }, `;

@@ -9,7 +9,11 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
             (filter ? filter(token) : true),
     ) || [];
 
-    return matchingTokens.reduce((acc, token) => {
+    type NestedObject = {
+        [key: string]: NestedObject | string;
+    }
+
+    return matchingTokens.reduce<Record<string, unknown>>((acc, token) => {
         const path = token.path.slice(identifier.length + 1);
         let currentLevel = acc;
         path.forEach((segment, index) => {
@@ -17,7 +21,7 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
                 currentLevel[segment] = token.value;
             } else if (segment !== path[index + 1]) {
                 currentLevel[segment] = currentLevel[segment] || {};
-                currentLevel = currentLevel[segment];
+                currentLevel = currentLevel[segment] as NestedObject;
             }
         });
 
@@ -34,7 +38,7 @@ const getTheme = (dictionary: Dictionary) => {
             tokens,
             identifier: ['color'],
             filter: (token) => {
-                return token.attributes.type !== "primitive";
+                return token.attributes?.type !== "primitive";
             },
         }),
         extend: {
