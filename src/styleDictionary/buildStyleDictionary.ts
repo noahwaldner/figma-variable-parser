@@ -1,5 +1,5 @@
-import StyleDictionary from "style-dictionary";
-import { Config } from "../types";
+import StyleDictionary, { type Token } from "style-dictionary";
+import { type Config } from "../types";
 import { tailwindFormat } from "./tailwind/tailwindFormat";
 
 StyleDictionary.registerTransform({
@@ -53,10 +53,11 @@ StyleDictionary.registerTransform({
 StyleDictionary.registerFormat(tailwindFormat);
 
 export const buildStyleDictionary = async (config: Config) => {
+  const allTokensPath = new URL("../../.tmp/tokens/all-tokens.json", import.meta.url).pathname;
   new StyleDictionary({
-    source: ["tokens/all-tokens.json"],
+    source: [allTokensPath],
     platforms: {
-      cssPrimitives: {
+      cssBase: {
         buildPath: "dist/",
         transforms: ["figma/colorToScaledRgbaString", "name/kebabWithoutThemeName", "value/refToCSSVariable"],
         options: {
@@ -65,29 +66,38 @@ export const buildStyleDictionary = async (config: Config) => {
         files: [
           {
             filter: (token) => {
-              return token.attributes.type === "primitive" || token.attributes.theme === config.defaultTheme;
+              return token.attributes?.type === "primitive" || token.attributes?.theme === config.defaultTheme;
             },
             destination: "css/base.css",
             format: "css/variables",
           },
+        ],
+      },
+      cssThemes: {
+        buildPath: ".tmp/themes/",
+        transforms: ["figma/colorToScaledRgbaString", "name/kebabWithoutThemeName", "value/refToCSSVariable"],
+        options: {
+          showFileHeader: false,
+        },
+        files: [
           {
             filter: (token) => {
-              return token.attributes.type === "primitive";
+              return token.attributes?.type === "primitive";
             },
-            destination: "themes/primitives.css",
+            destination: "primitives.css",
             options: {
               selector: ".primitives",
             },
             format: "css/variables",
           },
           ...config.themes.map((theme) => ({
-            filter: (token) => {
-              if (token.attributes.type == "theme") {
+            filter: (token: Token) => {
+              if (token.attributes?.type == "theme") {
                 return token.attributes.theme === theme;
               }
-              return token.attributes.type !== "primitive" && token.type !== "color";
+              return token.attributes?.type !== "primitive" && token.type !== "color";
             },
-            destination: `themes/${theme}.css`,
+            destination: `${theme}.css`,
             options: {
               selector: `.${theme}`,
             },
@@ -95,6 +105,7 @@ export const buildStyleDictionary = async (config: Config) => {
           })),
         ],
       },
+
       tailwind: {
         buildPath: "dist/tailwind/",
         transforms: ["figma/colorToScaledRgbaString", "tailwind/nameToCSSVariable"],

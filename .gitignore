@@ -2,5 +2,5 @@
 node_modules
 
 dist
-tokens
+.tmp
 token-map.json

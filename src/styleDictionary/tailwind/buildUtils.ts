@@ -8,7 +8,11 @@ const getObject = ({ tokens, identifier, filter }: { tokens: TransformedToken[],
             (filter ? filter(token) : true),
     ) || [];
 
-    return matchingTokens.reduce((acc, token) => {
+    type NestedObject = {
+        [key: string]: NestedObject | string;
+    };
+
+    return matchingTokens.reduce<NestedObject>((acc, token) => {
 
         const path = token.path.slice(identifier.length + 1);
         const property = path[path.length - 1];

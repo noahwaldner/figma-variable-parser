@@ -12,6 +12,9 @@ importers:
         specifier: ^1.2.12
         version: 1.2.12
     devDependencies:
+      '@types/bun':
+        specifier: ^1.2.13
+        version: 1.2.13
       '@types/node':
         specifier: ^22.13.1
         version: 22.13.1
@@ -111,6 +114,9 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
+  '@types/bun@1.2.13':
+    resolution: {integrity: sha512-u6vXep/i9VBxoJl3GjZsl/BFIsvML8DfVDO0RYLEwtSZSp981kEO1V5NwRcO1CPJ7AmvpbnDCiMKo3JvbDEjAg==}
+
   '@types/node@22.13.1':
     resolution: {integrity: sha512-jK8uzQlrvXqEU91UxiK5J7pKHyzgnI1Qnl0QDHIgVGuolJhRb9EEl28Cj9b3rGR8B2lhFCtvIm5os8lFnO/1Ew==}
 
@@ -166,6 +172,9 @@ packages:
 
   buffer@6.0.3:
     resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
+
+  bun-types@1.2.13:
+    resolution: {integrity: sha512-rRjA1T6n7wto4gxhAO/ErZEtOXyEZEmnIHQfl0Dt1QQSB4QV0iP6BZ9/YB5fZaHFQ2dwHFrmPaRQ9GGMX01k9Q==}
 
   bun@1.2.12:
     resolution: {integrity: sha512-66kW1iPrYLEC3MEsmYJhcPdNwMrT6V+l0cwcI9wl1jt4a8lhBhomgM16jYnSDzBros2C/8oJ/aZY8Y9HUvLLTA==}
@@ -764,6 +773,10 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
+  '@types/bun@1.2.13':
+    dependencies:
+      bun-types: 1.2.13
+
   '@types/node@22.13.1':
     dependencies:
       undici-types: 6.20.0
@@ -817,6 +830,10 @@ snapshots:
     dependencies:
       base64-js: 1.5.1
       ieee754: 1.2.1
+
+  bun-types@1.2.13:
+    dependencies:
+      '@types/node': 22.13.1
 
   bun@1.2.12:
     optionalDependencies:
